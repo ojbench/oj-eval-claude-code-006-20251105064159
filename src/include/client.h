@@ -12,11 +12,11 @@ extern int total_mines;  // The count of mines of the game map.
 
 // Client game state variables
 char** client_map;    // Current map state from ReadMap()
-bool** safe;          // Grids that are known to be safe
-bool** mine;          // Grids that are known to be mines
-bool** visited_client;// Grids that have been visited
-bool** marked_client; // Grids that have been marked
-int unvisited_count;  // Count of unvisited grids
+bool** client_safe;   // Grids that are known to be safe
+bool** client_mine;   // Grids that are known to be mines
+bool** client_visited;// Grids that have been visited
+bool** client_marked; // Grids that have been marked
+int client_unvisited_count;  // Count of unvisited grids
 
 // Helper function to check if coordinates are valid
 bool IsValidClient(int r, int c) {
@@ -30,7 +30,7 @@ int CountUnvisitedNeighbors(int r, int c) {
     for (int dc = -1; dc <= 1; dc++) {
       if (dr == 0 && dc == 0) continue;
       int nr = r + dr, nc = c + dc;
-      if (IsValidClient(nr, nc) && !visited_client[nr][nc] && !marked_client[nr][nc]) {
+      if (IsValidClient(nr, nc) && !client_visited[nr][nc] && !client_marked[nr][nc]) {
         count++;
       }
     }
@@ -45,7 +45,7 @@ int CountMarkedNeighbors(int r, int c) {
     for (int dc = -1; dc <= 1; dc++) {
       if (dr == 0 && dc == 0) continue;
       int nr = r + dr, nc = c + dc;
-      if (IsValidClient(nr, nc) && marked_client[nr][nc]) {
+      if (IsValidClient(nr, nc) && client_marked[nr][nc]) {
         count++;
       }
     }
@@ -57,7 +57,7 @@ int CountMarkedNeighbors(int r, int c) {
 bool FindSafeMove(int& safe_r, int& safe_c) {
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < columns; j++) {
-      if (visited_client[i][j] && client_map[i][j] >= '1' && client_map[i][j] <= '8') {
+      if (client_visited[i][j] && client_map[i][j] >= '1' && client_map[i][j] <= '8') {
         int number = client_map[i][j] - '0';
         int marked_count = CountMarkedNeighbors(i, j);
         int unvisited_count = CountUnvisitedNeighbors(i, j);
@@ -68,7 +68,7 @@ bool FindSafeMove(int& safe_r, int& safe_c) {
             for (int dc = -1; dc <= 1; dc++) {
               if (dr == 0 && dc == 0) continue;
               int nr = i + dr, nc = j + dc;
-              if (IsValidClient(nr, nc) && !visited_client[nr][nc] && !marked_client[nr][nc]) {
+              if (IsValidClient(nr, nc) && !client_visited[nr][nc] && !client_marked[nr][nc]) {
                 // Mark this as mine
                 safe_r = nr;
                 safe_c = nc;
@@ -84,7 +84,7 @@ bool FindSafeMove(int& safe_r, int& safe_c) {
             for (int dc = -1; dc <= 1; dc++) {
               if (dr == 0 && dc == 0) continue;
               int nr = i + dr, nc = j + dc;
-              if (IsValidClient(nr, nc) && !visited_client[nr][nc] && !marked_client[nr][nc]) {
+              if (IsValidClient(nr, nc) && !client_visited[nr][nc] && !client_marked[nr][nc]) {
                 // Visit this safe cell
                 safe_r = nr;
                 safe_c = nc;
@@ -103,7 +103,7 @@ bool FindSafeMove(int& safe_r, int& safe_c) {
 bool FindRandomUnvisited(int& r, int& c) {
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < columns; j++) {
-      if (!visited_client[i][j] && !marked_client[i][j]) {
+      if (!client_visited[i][j] && !client_marked[i][j]) {
         r = i;
         c = j;
         return true;
@@ -139,28 +139,28 @@ void Execute(int r, int c, int type);
 void InitGame() {
   // Initialize all your global variables!
   client_map = new char*[rows];
-  safe = new bool*[rows];
-  mine = new bool*[rows];
-  visited_client = new bool*[rows];
-  marked_client = new bool*[rows];
+  client_safe = new bool*[rows];
+  client_mine = new bool*[rows];
+  client_visited = new bool*[rows];
+  client_marked = new bool*[rows];
 
   for (int i = 0; i < rows; i++) {
     client_map[i] = new char[columns];
-    safe[i] = new bool[columns];
-    mine[i] = new bool[columns];
-    visited_client[i] = new bool[columns];
-    marked_client[i] = new bool[columns];
+    client_safe[i] = new bool[columns];
+    client_mine[i] = new bool[columns];
+    client_visited[i] = new bool[columns];
+    client_marked[i] = new bool[columns];
 
     for (int j = 0; j < columns; j++) {
       client_map[i][j] = '?';
-      safe[i][j] = false;
-      mine[i][j] = false;
-      visited_client[i][j] = false;
-      marked_client[i][j] = false;
+      client_safe[i][j] = false;
+      client_mine[i][j] = false;
+      client_visited[i][j] = false;
+      client_marked[i][j] = false;
     }
   }
 
-  unvisited_count = rows * columns;
+  client_unvisited_count = rows * columns;
 
   int first_row, first_column;
   std::cin >> first_row >> first_column;
@@ -186,36 +186,36 @@ void ReadMap() {
       // Update visited and marked states
       if (client_map[i][j] != '?' && client_map[i][j] != '@' && client_map[i][j] != 'X') {
         // It's a number (visited non-mine)
-        visited_client[i][j] = true;
-        marked_client[i][j] = false;
-        mine[i][j] = false;
-        safe[i][j] = true;
+        client_visited[i][j] = true;
+        client_marked[i][j] = false;
+        client_mine[i][j] = false;
+        client_safe[i][j] = true;
       } else if (client_map[i][j] == '@') {
         // Marked mine
-        marked_client[i][j] = true;
-        visited_client[i][j] = false;
-        mine[i][j] = true;
-        safe[i][j] = false;
+        client_marked[i][j] = true;
+        client_visited[i][j] = false;
+        client_mine[i][j] = true;
+        client_safe[i][j] = false;
       } else if (client_map[i][j] == 'X') {
         // Wrong mark or visited mine (game over)
-        marked_client[i][j] = false;
-        visited_client[i][j] = true;
-        mine[i][j] = false;
-        safe[i][j] = false;
+        client_marked[i][j] = false;
+        client_visited[i][j] = true;
+        client_mine[i][j] = false;
+        client_safe[i][j] = false;
       } else {
         // Unknown
-        visited_client[i][j] = false;
-        marked_client[i][j] = false;
+        client_visited[i][j] = false;
+        client_marked[i][j] = false;
       }
     }
   }
 
   // Update unvisited count
-  unvisited_count = 0;
+  client_unvisited_count = 0;
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < columns; j++) {
-      if (!visited_client[i][j] && !marked_client[i][j]) {
-        unvisited_count++;
+      if (!client_visited[i][j] && !client_marked[i][j]) {
+        client_unvisited_count++;
       }
     }
   }
@@ -240,7 +240,7 @@ void Decide() {
     // If the cell is already known to be a mine, mark it
     for (int i = 0; i < rows; i++) {
       for (int j = 0; j < columns; j++) {
-        if (visited_client[i][j] && client_map[i][j] >= '1' && client_map[i][j] <= '8') {
+        if (client_visited[i][j] && client_map[i][j] >= '1' && client_map[i][j] <= '8') {
           int number = client_map[i][j] - '0';
           int marked_count = CountMarkedNeighbors(i, j);
           int unvisited_count = CountUnvisitedNeighbors(i, j);
@@ -278,7 +278,7 @@ void Decide() {
     // Look for visited cells that might benefit from auto-explore
     for (int i = 0; i < rows; i++) {
       for (int j = 0; j < columns; j++) {
-        if (visited_client[i][j] && client_map[i][j] >= '1' && client_map[i][j] <= '8') {
+        if (client_visited[i][j] && client_map[i][j] >= '1' && client_map[i][j] <= '8') {
           int number = client_map[i][j] - '0';
           int marked_count = CountMarkedNeighbors(i, j);
 
